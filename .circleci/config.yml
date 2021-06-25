@@ -22,4 +22,14 @@ orbs:
           path: test/
       - store_artifacts:
           path: test-results
-    
+  scan_app:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - run:
+          name: Snyk Scan Application files 
+          command: npm install 
+      - snyk/scan:
+          fail-on-issues: false
+          monitor-on-build: false
