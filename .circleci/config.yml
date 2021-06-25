@@ -95,3 +95,29 @@ orbs:
           root: /tmp/ecr/
           paths:
             - "*"
+  create_deploy_app_runner:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ecr/
+      - terraform/install:
+          terraform_version: "0.14.10"
+          arch: "amd64"
+          os: "linux"
+      - run:
+          name: Create and Deploy App Runner
+          command: |
+            source /tmp/ecr/ecr_envars
+            cd ./terraform/app-runner/
+            echo "credentials \"app.terraform.io\" {token = \"$TERRAFORM_TOKEN\"}" > $HOME/.terraformrc
+            terraform init
+            terraform apply -var image_name=$ECR_PUBLIC_URI \
+              -var image_tag=$TAG \
+              -auto-approve
+            echo 'export ENDPOINT='$(terraform output apprunner_service_url) >> /tmp/ecr/ecr_envars
+      - persist_to_workspace:
+          root: /tmp/ecr/
+          paths:
+            - "*"
