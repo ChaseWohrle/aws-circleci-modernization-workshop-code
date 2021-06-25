@@ -66,3 +66,32 @@ orbs:
           root: /tmp/ecr/
           paths:
             - "*"
+              build_push_docker_image:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: /tmp/ecr/      
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+      - run:
+          name: Build Docker image
+          command: |
+            export TAG=0.1.<< pipeline.number >>
+            echo 'export TAG='$TAG >> /tmp/ecr/ecr_envars
+            source /tmp/ecr/ecr_envars
+            docker build -t $ECR_PUBLIC_URI -t $ECR_PUBLIC_URI:$TAG .
+      - run:
+          name: Push AWS ECR Public
+          command: |
+            source /tmp/ecr/ecr_envars
+            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_URL
+            docker push $ECR_PUBLIC_URI
+      - persist_to_workspace:
+          root: /tmp/ecr/
+          paths:
+            - "*"
