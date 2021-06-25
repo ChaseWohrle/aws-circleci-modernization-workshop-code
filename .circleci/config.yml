@@ -133,3 +133,31 @@ orbs:
           command: |
             source /tmp/ecr/ecr_envars
             ./test/smoke_test $ENDPOINT
+              destroy_ecr:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+      - attach_workspace:
+          at: /tmp/ecr/
+      - run:
+          name: Create .terraformrc file locally
+          command: echo "credentials \"app.terraform.io\" {token = \"$TERRAFORM_TOKEN\"}" > $HOME/.terraformrc && cat $HOME/.terraformrc
+      - terraform/install:
+          terraform_version: "0.14.10"
+          arch: "amd64"
+          os: "linux"
+      - run:
+          name: Prep AWS ECR Destroy
+          command: |
+            source /tmp/ecr/ecr_envars
+            sudo apt-get update && sudo apt-get install -y groff groff-base less wget
+            aws ecr-public delete-repository --region us-east-1 --repository-name $ECR_NAME --force
+      - terraform/init:
+          path: ./terraform/ecr
+      - terraform/destroy:
+          path: ./terraform/ecr
