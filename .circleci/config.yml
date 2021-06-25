@@ -161,3 +161,20 @@ orbs:
           path: ./terraform/ecr
       - terraform/destroy:
           path: ./terraform/ecr
+            destroy_app_runner:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ecr/
+      - run:
+          name: Create .terraformrc file locally
+          command: echo "credentials \"app.terraform.io\" {token = \"$TERRAFORM_TOKEN\"}" > $HOME/.terraformrc && cat $HOME/.terraformrc
+      - terraform/install:
+          terraform_version: "0.14.10"
+          arch: "amd64"
+      - terraform/init:
+          path: ./terraform/app-runner/
+      - terraform/destroy:
+          path: ./terraform/app-runner/
