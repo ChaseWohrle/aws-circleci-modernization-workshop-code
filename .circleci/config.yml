@@ -178,3 +178,28 @@ orbs:
           path: ./terraform/app-runner/
       - terraform/destroy:
           path: ./terraform/app-runner/
+workflows:
+  scan_deploy:
+    jobs:
+      - run_tests
+      - scan_app
+      - create_ecr_repo
+      - build_push_docker_image:
+          requires:
+            - create_ecr_repo
+      - create_deploy_app_runner:
+          requires:
+            - build_push_docker_image
+      - smoketest_deployment:
+          requires:
+            - create_deploy_app_runner
+      - approve_destroy:
+          type: approval
+          requires:
+            - smoketest_deployment            
+      - destroy_ecr:
+          requires:
+            - approve_destroy
+      - destroy_app_runner:
+          requires:
+            - approve_destroy
