@@ -121,3 +121,15 @@ orbs:
           root: /tmp/ecr/
           paths:
             - "*"
+  smoketest_deployment:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ecr/
+      - run:
+          name: Smoke Test App Runner Deployment
+          command: |
+            source /tmp/ecr/ecr_envars
+            ./test/smoke_test $ENDPOINT
