@@ -33,3 +33,36 @@ orbs:
       - snyk/scan:
           fail-on-issues: false
           monitor-on-build: false
+  create_ecr_repo:
+    docker:
+      - image: cimg/node:14.16.0
+    steps:
+      - checkout
+      - run:
+          name: Create .terraformrc file locally
+          command: echo "credentials \"app.terraform.io\" {token = \"$TERRAFORM_TOKEN\"}" > $HOME/.terraformrc
+      - terraform/install:
+          terraform_version: "0.14.10"
+          arch: "amd64"
+          os: "linux"
+      - run:
+          name: Create ECR Repo
+          command: echo 'Create AWS ECR Repo with Terraform'
+      - terraform/init:
+          path: ./terraform/ecr
+      - terraform/apply:
+          path: ./terraform/ecr
+      - run: 
+          name: "Retrieve ECR URIs"
+          command: |
+            cd ./terraform/ecr
+            mkdir -p /tmp/ecr/
+            terraform init
+            echo 'export ECR_NAME='$(terraform output ECR_NAME) >> /tmp/ecr/ecr_envars
+            export ECR_PUBLIC_URI=$(terraform output ECR_URI)
+            echo 'export ECR_PUBLIC_URI='$ECR_PUBLIC_URI >> /tmp/ecr/ecr_envars
+            echo 'export ECR_URL='$(echo ${ECR_PUBLIC_URI:1:-1} | cut -d"/" -f1,2) >> /tmp/ecr/ecr_envars
+      - persist_to_workspace:
+          root: /tmp/ecr/
+          paths:
+            - "*"
